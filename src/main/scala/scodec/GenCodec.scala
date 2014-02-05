@@ -18,12 +18,13 @@ trait GenCodec[-A, +B] extends Encoder[A] with Decoder[B] { self =>
   }
 
   /** Converts this generalized codec in to a non-generalized codec assuming `A` and `B` are the same type. */
-  final def fuse[AA <: A, BB >: B](implicit ev: BB =:= AA): Codec[AA] = new Codec[AA] {
-    def encode(c: AA) = self.encode(c)
-    def decode(bits: BitVector) = self.decode(bits) map { case (rem, b) => (rem, ev(b)) }
+  final def fuse[AA <: A, BB >: B](implicit ev: BB =:= AA): Codec[BB] = new Codec[BB] {
+    def encode(c: BB) = self.encode(ev(c))
+    def decode(bits: BitVector) = self.decode(bits)
   }
 }
 
+/** Companion for [[GenCodec]]. */
 object GenCodec {
 
   /** Provides syntaax for summoning a `GenCodec[A, B]` from implicit scope. */
