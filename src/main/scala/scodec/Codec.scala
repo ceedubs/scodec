@@ -14,7 +14,7 @@ import shapeless._
  * Note: the decode function can be lifted to a state action via `StateT[Error \/ ?, BitVector, A]`. This type alias
  * and associated constructor is provided by `Codec.DecodingContext`.
  */
-trait Codec[A] {
+trait Codec[A] extends GenCodec[A, A] {
 
   /** Attempts to encode the specified value in to a bit vector. */
   def encode(a: A): Error \/ BitVector
