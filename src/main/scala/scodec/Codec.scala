@@ -16,12 +16,6 @@ import shapeless._
  */
 trait Codec[A] extends GenCodec[A, A] {
 
-  /** Attempts to encode the specified value in to a bit vector. */
-  def encode(a: A): Error \/ BitVector
-
-  /** Attempts to decode a value of type `A` from the specified bit vector. */
-  def decode(bits: BitVector): Error \/ (BitVector, A)
-
   /** Maps to a codec of type `B`. */
   final def xmap[B](f: A => B, g: B => A): Codec[B] = Codec.xmap(this)(f, g)
 
