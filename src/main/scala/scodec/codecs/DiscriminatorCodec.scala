@@ -56,7 +56,7 @@ import DiscriminatorCodec.{ Case, Prism }
  * @define paramFromRep function used during decoding that converts an `R` to an `A`
  * @define paramCr codec that encodes/decodes `R`s
  */
-final class DiscriminatorCodec[A, B] private[codecs] (by: Codec[B], cases: Vector[Case[A, B, _]]) extends Codec[A] {
+final class DiscriminatorCodec[A, B] private[codecs] (by: Codec[B], cases: Vector[Case[A, B, Any]]) extends Codec[A] {
 
   /**
    * $methodCaseCombinator
@@ -313,12 +313,12 @@ final class DiscriminatorCodec[A, B] private[codecs] (by: Codec[B], cases: Vecto
   }
 
   private def appendCase[R](c: Case[A, B, R]): DiscriminatorCodec[A, B] =
-    new DiscriminatorCodec[A, B](by, cases :+ c)
+    new DiscriminatorCodec[A, B](by, cases :+ c.asInstanceOf[Case[A, B, Any]])
 
   private val matcher: B => (String \/ Case[A, B, _]) =
     if (cases.forall(_.condition.isLeft)) { // build a little table
       // we reverse the cases so earlier cases 'win' in event of overlap
-      val tbl = cases.reverse.map(kase => kase.condition.swap.toOption.get -> kase.asInstanceOf[Case[A, B, Any]]).toMap
+      val tbl = cases.reverse.map(kase => kase.condition.swap.toOption.get -> kase).toMap
       b => tbl.get(b) match {
         case None => left(s"unknown discrimination tag $b")
         case Some(kase) => right(kase)
@@ -332,11 +332,9 @@ final class DiscriminatorCodec[A, B] private[codecs] (by: Codec[B], cases: Vecto
 
   def encode(a: A): String \/ BitVector =
     cases.iterator.flatMap { k =>
-      val casted = k.asInstanceOf[Case[A, B, Any]]
-      val (cond, extract, codec) = (casted.condition, casted.prism.preview, casted.prism.repCodec)
-      extract(a).map { r =>
+      k.prism.preview(a).map { r =>
         by.encode(k.representative)
-          .flatMap { bits => codec.encode(r).map(bits ++ _) }
+          .flatMap { bits => k.prism.repCodec.encode(r).map(bits ++ _) }
       }.map(List(_)).getOrElse(List())
     }.toStream.headOption match {
       case None => left(s"could not find matching case for $a")
